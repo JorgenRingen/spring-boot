@@ -30,6 +30,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @author Venil Noronha
  * @author Madhura Bhave
  * @author Stephane Nicoll
+ * @author Jorgen Ringen
  * @since 1.3.0
  */
 @ConfigurationProperties(prefix = "management.trace")
@@ -41,6 +42,11 @@ public class TraceEndpointProperties {
 	 */
 	private Set<Include> include = new HashSet<>(Include.defaultIncludes());
 
+	/**
+	 * Paths that should not be traced.
+	 */
+	private Set<String> ignoredPaths = new HashSet<>();
+
 	public Set<Include> getInclude() {
 		return this.include;
 	}
@@ -49,4 +55,11 @@ public class TraceEndpointProperties {
 		this.include = include;
 	}
 
+	public Set<String> getIgnoredPaths() {
+		return this.ignoredPaths;
+	}
+
+	public void setIgnoredPaths(Set<String> ignoredPaths) {
+		this.ignoredPaths = ignoredPaths;
+	}
 }

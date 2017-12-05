@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 
 import javax.servlet.ServletException;
@@ -49,6 +50,7 @@ import static org.mockito.Mockito.verify;
  * @author Venil Noronha
  * @author Stephane Nicoll
  * @author Madhura Bhave
+ * @author Jorgen Ringen
  */
 public class WebRequestTraceFilterTests {
 
@@ -280,6 +282,29 @@ public class WebRequestTraceFilterTests {
 		Map<String, Object> map = (Map<String, Object>) filter.getTrace(request)
 				.get("headers");
 		assertThat(map.get("request").toString()).isEqualTo("{Accept=application/json}");
+	}
+
+	@Test
+	public void filterDoesNotTraceIgnoredPaths() throws Exception {
+		final String ignoredPath = "/foo";
+		final String nonIgnoredPath = "/bar";
+		WebRequestTraceFilter filter = new WebRequestTraceFilter(this.repository,
+				Include.defaultIncludes(), Collections.singleton(ignoredPath));
+		MockHttpServletResponse response = new MockHttpServletResponse();
+
+		MockHttpServletRequest ignoredRequest = spy(
+				new MockHttpServletRequest("GET", ignoredPath));
+		MockFilterChain chain = new MockFilterChain();
+		filter.doFilter(ignoredRequest, response, chain);
+
+		chain = new MockFilterChain();
+		MockHttpServletRequest nonIgnoredRequest = spy(
+				new MockHttpServletRequest("GET", nonIgnoredPath));
+		filter.doFilter(nonIgnoredRequest, response, chain);
+
+		List<Trace> traces = this.repository.findAll();
+		assertThat(traces.size()).isEqualTo(1);
+		assertThat(traces.get(0).getInfo().get("path")).isEqualTo(nonIgnoredPath);
 	}
 
 }

@@ -41,6 +41,7 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.boot.web.servlet.error.ErrorAttributes;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpStatus;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.web.context.request.ServletWebRequest;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -52,6 +53,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * @author Andy Wilkinson
  * @author Venil Noronha
  * @author Madhura Bhave
+ * @author Jorgen Ringen
  */
 public class WebRequestTraceFilter extends OncePerRequestFilter implements Ordered {
 
@@ -69,14 +71,22 @@ public class WebRequestTraceFilter extends OncePerRequestFilter implements Order
 
 	private final Set<Include> includes;
 
+	private final Set<String> ignoredPaths;
+
+	public WebRequestTraceFilter(TraceRepository repository, Set<Include> includes,
+			Set<String> ignoredPaths) {
+		this.repository = repository;
+		this.includes = includes;
+		this.ignoredPaths = ignoredPaths;
+	}
+
 	/**
 	 * Create a new {@link WebRequestTraceFilter} instance.
 	 * @param repository the trace repository
 	 * @param includes the {@link Include} to apply
 	 */
 	public WebRequestTraceFilter(TraceRepository repository, Set<Include> includes) {
-		this.repository = repository;
-		this.includes = includes;
+		this(repository, includes, Collections.emptySet());
 	}
 
 	/**
@@ -110,7 +120,7 @@ public class WebRequestTraceFilter extends OncePerRequestFilter implements Order
 	@Override
 	protected void doFilterInternal(HttpServletRequest request,
 			HttpServletResponse response, FilterChain filterChain)
-					throws ServletException, IOException {
+			throws ServletException, IOException {
 		long startTime = System.nanoTime();
 		Map<String, Object> trace = getTrace(request);
 		logTrace(request, trace);
@@ -125,6 +135,12 @@ public class WebRequestTraceFilter extends OncePerRequestFilter implements Order
 					: new CustomStatusResponseWrapper(response, status));
 			this.repository.add(trace);
 		}
+	}
+
+	@Override
+	protected boolean shouldNotFilter(HttpServletRequest request) {
+		return this.ignoredPaths.stream().anyMatch(pathToIgnore -> new AntPathMatcher()
+				.match(pathToIgnore, request.getRequestURI()));
 	}
 
 	protected Map<String, Object> getTrace(HttpServletRequest request) {

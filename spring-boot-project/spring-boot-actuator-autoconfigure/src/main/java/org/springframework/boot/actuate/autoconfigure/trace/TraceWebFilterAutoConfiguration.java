@@ -65,7 +65,7 @@ public class TraceWebFilterAutoConfiguration {
 	@ConditionalOnMissingBean
 	public WebRequestTraceFilter webRequestLoggingFilter() {
 		WebRequestTraceFilter filter = new WebRequestTraceFilter(this.traceRepository,
-				this.endpointProperties.getInclude());
+				this.endpointProperties.getInclude(), this.endpointProperties.getIgnoredPaths());
 		if (this.errorAttributes != null) {
 			filter.setErrorAttributes(this.errorAttributes);
 		}
